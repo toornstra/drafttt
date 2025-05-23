@@ -311,6 +311,10 @@
   background-repeat: no-repeat;
   background-position: center;
   flex-wrap: wrap;
+    flex-direction: column;  /* zet players onder elkaar */
+  gap: 10px;               /* ruimte tussen spelers */
+  align-items: center;     /* horizontaal centreren */
+
   justify-content: space-between;
   display: flex;
   margin-top: 2px;
@@ -319,10 +323,12 @@
 .player {
   border-radius: 5px;
   text-align: center;
-  color: white; /* Dit maakt de tekst wit */
+  color: white;
   font-weight: 700;
-  position: absolute; /* Wordt gezet als ze worden gedropt */
+  position: absolute;
+  transform: translateY(30px); /* Verplaatst elke speler 30px naar beneden */
 }
+
 
 
 .player-ghost {

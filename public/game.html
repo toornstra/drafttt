@@ -400,8 +400,6 @@ watchBtn.onclick = (e) => {
 const footballField = document.getElementById("footballField");
 
 
-
-
 socket.on("playerPicked", ({ round, playerName, pickedName }) => {
   const msg = document.createElement("p");
   msg.className = "pick-msg";
@@ -411,18 +409,24 @@ socket.on("playerPicked", ({ round, playerName, pickedName }) => {
   const speler = window.namen.find(p => p.name === pickedName);
   const achtername = speler ? speler.achtername : pickedName;
 
-  // Maak een nieuw div element voor de speler
   const playerDiv = document.createElement("div");
   playerDiv.classList.add("player");
-  playerDiv.textContent = achtername;  // Toon de achternaam van de speler
+  playerDiv.textContent = achtername;
 
-  // Voeg de speler toe aan het footballField
+  // Bepaal positie van nieuwe speler zodat ze niet overlappen
+  const existingPlayers = footballField.querySelectorAll(".player").length;
+  const hoogtePerSpeler = 30;  // hoogte + marge, pas aan naar je layout
+
+  playerDiv.style.position = "absolute";
+  playerDiv.style.top = (existingPlayers * hoogtePerSpeler) + "px";
+  playerDiv.style.left = "10px";  // of waar je maar wilt
+
   footballField.appendChild(playerDiv);
 
-  // Maak de speler draggable (als dat nodig is)
   maakSpelerDraggable(playerDiv);
   voegTouchSupportToe(playerDiv);
 });
+
 
 
 socket.on("redirectToDeken", ({ lobbyId }) => {
@@ -1072,40 +1076,36 @@ footballField.addEventListener("dragover", e => {
 
 ////////////////////////////////
 
-function voegTouchSupportToe(playerDiv) {
-  let offsetX, offsetY;
+function voegTouchSupportToe(el) {
+  let startX = 0;
+  let startY = 0;
+  let offsetX = 0;
+  let offsetY = 0;
 
-  playerDiv.addEventListener("touchstart", e => {
+  el.addEventListener("touchstart", function (e) {
     const touch = e.touches[0];
-    const rect = playerDiv.getBoundingClientRect();
-    offsetX = touch.clientX - rect.left;
-    offsetY = touch.clientY - rect.top;
-
-    playerDiv.classList.add("dragging");
+    startX = touch.clientX - el.offsetLeft;
+    startY = touch.clientY - el.offsetTop;
+    el.style.position = "absolute";
+    el.style.zIndex = "1000";
   });
 
-  playerDiv.addEventListener("touchmove", e => {
-    e.preventDefault();
+  el.addEventListener("touchmove", function (e) {
+    e.preventDefault(); // voorkom scrollen
+
     const touch = e.touches[0];
+    offsetX = touch.clientX - startX;
+    offsetY = touch.clientY - startY;
 
-    const fieldRect = footballField.getBoundingClientRect();
-    const x = touch.clientX - fieldRect.left - offsetX;
-    const y = touch.clientY - fieldRect.top - offsetY;
-
-    const maxX = footballField.clientWidth - playerDiv.offsetWidth;
-    const maxY = footballField.clientHeight - playerDiv.offsetHeight;
-
-    playerDiv.style.position = "absolute";
-    playerDiv.style.left = Math.min(Math.max(0, x), maxX) + "px";
-    playerDiv.style.top = Math.min(Math.max(0, y), maxY) + "px";
-
-    footballField.appendChild(playerDiv);
+    el.style.left = offsetX + "px";
+    el.style.top = offsetY + "px";
   });
 
-  playerDiv.addEventListener("touchend", e => {
-    playerDiv.classList.remove("dragging");
+  el.addEventListener("touchend", function () {
+    // Hier kun je logica toevoegen voor "drop"-actie
   });
 }
+
 
   </script>
 </body>
