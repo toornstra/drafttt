@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Rank de Teams</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <link rel="stylesheet" href="css/deken.css">
+  <link rel="stylesheet" href="css/les.css">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+</head>
+<body>
+
+    <div id="message"></div>
+
+  
+  <form id="ranking-form">Laden...</form>
+
+  <div id="host-controls" style="display: none;">
+  </div>
+
+
+<button id="calculate-winner" style="display:none;">Bereken winnaar</button>
+
+  <div class="ranking-container">
+  <div class="ranking-title">Leaderboard</div>
+  <div id="ranking-wrapper">
+    <div id="lobby-names"></div>
+    <div id="podium-container"></div>
+  </div>
+</div>
+
+
+
+
+  <button id="bozo-button" style="display: none;">Klik hier als host</button>
+  <div id="bozo-text"></div>
+<div id="winner-result"></div>
+
+
+  <script>
+    let players = [];
+    let picks = {}; // globale variabele
+    let secondsLeft = 10;
+    let messageTimeout = null;
+    let lastMessageType = null;
+    let currentTimerText = "";
+    let timerExpired = false; // 👈 Nieuw toegevoegd
+
+  const socket = io();
+  const urlParams = new URLSearchParams(window.location.search);
+  const lobbyId = urlParams.get('lobby');
+  const username = sessionStorage.getItem("username") || urlParams.get("username");
+  let alleSpelers = [];
+  // Status per team of we in bewerkmodus zitten
+const editMode = {}
+
+if (username) {
+  sessionStorage.setItem("username", username);
+}
+if (lobbyId) {
+  sessionStorage.setItem("lobbyId", lobbyId);
+}
+
+
+
+fetch("/namen")
+  .then(res => res.json())
+  .then(({ namen }) => {
+    alleSpelers = namen;
+    renderOverzicht(); // pas je rendering hieraan aan
+  });
+
+    
+function renderOverzicht() {
+  // stel je hebt een object zoals:
+  // picks = { "Jan": ["Robin van Persie", "Wesley Sneijder"], ... }
+
+  Object.entries(picks).forEach(([speler, gekozenSpelers]) => {
+    gekozenSpelers.forEach(pick => {
+      const spelerObj = alleSpelers.find(p => p.name === pick);
+      if (!spelerObj) return;
+
+      const achternaam = spelerObj.achtername;
+      const positie = spelerObj.positie;
+      // Gebruik hier achternaam en positie in je tabel
+    });
+  });
+}
+
+
+    function showMessage(text, type = 'success') {
+      const msgDiv = document.getElementById("message");
+      msgDiv.textContent = text;
+      msgDiv.className = type;
+    }
+
+    function getLobbyId() {
+  return sessionStorage.getItem("lobbyId") || new URLSearchParams(window.location.search).get("lobby");
+}
+
+
+    function getUsername() {
+  return sessionStorage.getItem("username") || new URLSearchParams(window.location.search).get("username");
+}
+
+
+    function isHost() {
+    return sessionStorage.getItem("isHost") === "true";
+  }
+
+    async function fetchPicksAndRender() {
+      const lobbyId = getLobbyId();
+      if (!lobbyId) {
+        document.getElementById('ranking-form').textContent = "Geen lobbyId gevonden in URL.";
+        return;
+      }
+
+      try {
+        const res = await fetch(`/picks/${lobbyId}`);
+        if (!res.ok) throw new Error("Ophalen picks mislukt");
+        const timeline = await res.json();
+
+        const grouped = {};
+        timeline.forEach(pick => {
+          if (!grouped[pick.username]) grouped[pick.username] = [];
+          grouped[pick.username].push(pick.pick);
+        });
+
+          picks = grouped; 
+
+          renderOverzicht();
+
+        players = Object.keys(grouped);
+        // 1) Clear oude dropdown-container
+document.getElementById("ranking-form").innerHTML = "";
+
+
+
+        const form = document.getElementById("ranking-form");
+        form.innerHTML = "";
+
+   players.forEach(username => {
+  const container = document.createElement("div");
+  container.className = "team-container";
+
+  const title = document.createElement("h2");
+title.style.textAlign = "center";
+
+
+const nameSpan = document.createElement("span");
+nameSpan.textContent = username;
+
+title.appendChild(nameSpan);
+
+// Zet bewerkmodus altijd aan voor de eigen gebruiker
+editMode[username] = (username === getUsername());
+
+container.appendChild(title);
+
+
+  
+
+  const div = document.createElement("div");
+  div.className = "team";
+
+  const playersContainer = document.createElement("div");
+  playersContainer.className = "players-list";
+  playersContainer.style.position = "relative";
+  playersContainer.style.width = "250px";
+  playersContainer.style.height = "350px";
+  playersContainer.style.margin = "0 auto";
+
+  const spelerData = [];
+  grouped[username].forEach(playerName => {
+    const spelerObj = alleSpelers.find(p => p.name === playerName);
+    if (!spelerObj) return;
+    spelerData.push({ name: playerName, positie: spelerObj.positie, achternaam: spelerObj.achtername });
+  });
+
+  const maxPosities = {
+    keeper: 1,
+    verdediger: 4,
+    middenvelder: 3,
+    aanvaller: 3
+  };
+
+  function verdeelSpelersSlim(spelers) {
+    const groepen = {
+      keeper: [],
+      verdediger: [],
+      middenvelder: [],
+      aanvaller: [],
+      anders: []
+    };
+
+    spelers.forEach(sp => {
+      const pos = sp.positie.toLowerCase();
+      let voorkeur = "";
+
+      if (pos.includes("keeper")) {
+        voorkeur = "keeper";
+      } else if (pos.includes("verdediger") || pos.includes("cv") || pos.includes("back")) {
+        voorkeur = "verdediger";
+      } else if (pos.includes("middenvelder") || pos.includes("cm") || pos.includes("cam") || pos.includes("rm") || pos.includes("lm")) {
+        voorkeur = "middenvelder";
+      } else if (pos.includes("aanvaller") || pos.includes("spits") || pos.includes("forward") || pos.includes("winger")) {
+        voorkeur = "aanvaller";
+      } else {
+        voorkeur = "anders";
+      }
+
+      if (voorkeur !== "anders" && groepen[voorkeur].length < maxPosities[voorkeur]) {
+        groepen[voorkeur].push(sp);
+      } else {
+        const fallback = ["aanvaller", "verdediger", "middenvelder"];
+        let geplaatst = false;
+
+        for (let fallbackPos of fallback) {
+          if (fallbackPos !== voorkeur && groepen[fallbackPos].length < maxPosities[fallbackPos]) {
+            groepen[fallbackPos].push(sp);
+            geplaatst = true;
+            break;
+          }
+        }
+
+        if (!geplaatst) {
+          groepen.anders.push(sp);
+        }
+      }
+    });
+
+    return groepen;
+  }
+
+  const positiesGroepen = verdeelSpelersSlim(spelerData);
+
+  const keeperPositions = [{ top: "320px", left: "80px" }];
+  const verdedigerPositions = [
+    { top: "270px", left: "30px" },
+    { top: "270px", left: "150px" },
+    { top: "230px", left: "-20px" },
+    { top: "232px", left: "190px" }
+  ];
+  const middenvelderPositions = [
+    { top: "120px", left: "80px" },
+    { top: "160px", left: "150px" },
+    { top: "160px", left: "20px" }
+  ];
+  const aanvallerPositions = [
+    { top: "20px", left: "80px" },
+    { top: "60px", left: "0px" },
+    { top: "60px", left: "170px" }
+  ];
+  const andersPositions = [
+    { top: "340px", left: "-32px" },
+    { top: "340px", left: "-70px" },
+    { top: "340px", left: "-100px" }
+  ];
+
+  function placePlayersByPosition(players, positions, container) {
+    players.forEach((speler, i) => {
+      const spelerDiv = document.createElement("div");
+      spelerDiv.className = "position";
+      spelerDiv.textContent = speler.achternaam;
+      spelerDiv.style.top = positions[i]?.top || "340px";
+      spelerDiv.style.left = positions[i]?.left || "-32px";
+
+      // ✅ STAP 2: data attributen toevoegen
+      
+      spelerDiv.dataset.name = speler.achternaam;
+
+      // ✅ STAP 1: drag functionaliteit
+spelerDiv.dataset.owner = username; // eigenaar van het team
+spelerDiv.dataset.name = speler.achternaam;
+spelerDiv.dataset.teamOwner = username;
+
+if (username !== spelerDiv.dataset.owner) {
+  spelerDiv.classList.add("opponent-player");
+}
+
+
+
+
+
+      container.appendChild(spelerDiv);
+    });
+  }
+
+  // Voeg spelers toe per groep
+  placePlayersByPosition(positiesGroepen.keeper, keeperPositions, playersContainer);
+  placePlayersByPosition(positiesGroepen.verdediger, verdedigerPositions, playersContainer);
+  placePlayersByPosition(positiesGroepen.middenvelder, middenvelderPositions, playersContainer);
+  placePlayersByPosition(positiesGroepen.aanvaller, aanvallerPositions, playersContainer);
+  placePlayersByPosition(positiesGroepen.anders, andersPositions, playersContainer);
+
+  // ✅ Drag & drop binnen eigen team
+  
+
+ let selectedPlayer = null;
+
+ if (getUsername() === username) {
+  playersContainer.addEventListener("click", (e) => {
+    const target = e.target;
+    if (!target.classList.contains("position")) return;
+
+    const owner = target.dataset.owner;
+    if (owner !== getUsername()) return;
+
+    // rest van je klik-klik wisselcode hier
+  });
+}
+
+
+playersContainer.addEventListener("click", (e) => {
+  const target = e.target;
+
+  // Alleen klikken op spelers
+  if (!target.classList.contains("position")) return;
+
+  const owner = target.dataset.owner;
+  if (owner !== getUsername() || !editMode[owner]) {
+    showMessage("You can only change positions for your own players.", "error");
+    return;
+  }
+
+  // Eerste klik: selecteer speler
+  if (!selectedPlayer) {
+    selectedPlayer = target;
+    selectedPlayer.classList.add("selected-player");
+    return;
+  }
+
+  // Tweede klik: wissel met geselecteerde speler
+  if (selectedPlayer === target) {
+    selectedPlayer.classList.remove("selected-player");
+    selectedPlayer = null;
+    return;
+  }
+
+  // Wissel posities
+  const tempTop = selectedPlayer.style.top;
+  const tempLeft = selectedPlayer.style.left;
+
+  selectedPlayer.style.top = target.style.top;
+  selectedPlayer.style.left = target.style.left;
+
+  target.style.top = tempTop;
+  target.style.left = tempLeft;
+
+  // Verstuur naar server
+  socket.emit("playerMoved", {
+    lobbyId,
+    teamOwner: username,
+    swaps: [
+      {
+        name: selectedPlayer.dataset.name,
+        top: selectedPlayer.style.top,
+        left: selectedPlayer.style.left,
+      },
+      {
+        name: target.dataset.name,
+        top: target.style.top,
+        left: target.style.left,
+      }
+    ]
+  });
+
+  // Reset selectie
+  selectedPlayer.classList.remove("selected-player");
+  selectedPlayer = null;
+});
+
+
+
+socket.on("updatePlayerPositions", ({ teamOwner, swaps }) => {
+  const allPlayerDivs = document.querySelectorAll(`.position[data-team-owner="${teamOwner}"]`);
+
+
+  swaps.forEach(({ name, top, left }) => {
+    const playerDiv = Array.from(allPlayerDivs).find(div => div.dataset.name === name);
+    if (playerDiv) {
+      playerDiv.style.top = top;
+      playerDiv.style.left = left;
+    }
+  });
+});
+
+
+  div.appendChild(playersContainer);
+  container.appendChild(div);
+
+  
+
+  form.appendChild(container);
+});
+
+
+
+
+      } catch (err) {
+        document.getElementById("ranking-form").textContent = "Fout bij ophalen picks.";
+        console.error(err);
+      }
+    }
+
+    
+   
+
+   
+
+    window.addEventListener("DOMContentLoaded", () => {
+      fetchPicksAndRender();
+      if (isHost()) {
+        document.getElementById("host-controls").style.display = "block";
+      }
+      fetchAndRenderVoteResults();
+    });
+
+    socket.emit("joinLobbyPage", { lobbyId, username });
+
+    socket.on("youAreHost", () => {
+      sessionStorage.setItem("isHost", "true");
+      document.getElementById("host-controls").style.display = "block";
+    });
+
+
+
+
+
+
+//////////////////
+function truncateUsername(name, maxLength = 15) {
+  return name.length > maxLength ? name.slice(0, maxLength - 3) + "..." : name;
+}
+
+
+    socket.emit("joinLesPage", { lobbyId, username });
+
+    socket.on("youAreHost", () => {
+  const button = document.getElementById("bozo-button");
+  const winnerBtn = document.getElementById("calculate-winner");
+  winnerBtn.style.display = "inline-block";
+
+  winnerBtn.addEventListener("click", () => {
+    socket.emit("calculateWinner", lobbyId);
+  });
+});
+
+
+    let selectedBox = null;
+    let selectedUser = null;
+
+
+socket.on("lobbyUsers", (users) => {
+  const lobbyNamesDiv = document.getElementById("lobby-names");
+  lobbyNamesDiv.innerHTML = "";
+
+  // Voeg klikbare gebruikers toe aan de lijst bovenaan
+  users.forEach(name => {
+    const nameEl = document.createElement("div");
+    nameEl.className = "name-box";
+nameEl.textContent = truncateUsername(name);
+
+    // Selecteren uit de lijst
+    nameEl.addEventListener("click", () => {
+      // Verwijder vorige selectie uit de naam-lijst
+if (selectedUser) {
+  selectedUser.classList.remove("selected");
+  selectedUser = null;
+}
+
+// Verwijder selectie van slot (indien actief)
+if (selectedBox) {
+  selectedBox.classList.remove("selected");
+  selectedBox = null;
+}
+
+// Selecteer de nieuw aangeklikte naam
+selectedUser = nameEl;
+nameEl.classList.add("selected");
+
+    });
+
+    lobbyNamesDiv.appendChild(nameEl);
+  });
+
+  // Dynamische podium opbouw
+  const podiumContainer = document.getElementById("podium-container");
+  podiumContainer.innerHTML = "";
+
+  const podium = document.createElement("div");
+  podium.className = "podium";
+
+  const positions = ["first", "second", "third"];
+  for (let i = 0; i < Math.min(users.length, 3); i++) {
+    const box = document.createElement("div");
+    box.className = `podium-box ${positions[i]}`;
+    box.innerHTML = `<span>${i + 1}</span><div class="slot rank-${i + 1}" data-index="${i}"></div>`;
+    podium.appendChild(box);
+  }
+
+  const othersTable = document.createElement("table");
+othersTable.className = "others-table";
+
+for (let i = 3; i < users.length; i++) {
+  const row = document.createElement("tr");
+
+  const rankCell = document.createElement("td");
+  rankCell.textContent = `${i + 1}e`;
+  rankCell.className = "rank-cell";
+
+  const slotCell = document.createElement("td");
+  const slot = document.createElement("div");
+  slot.className = "slot rank-other";
+  slot.setAttribute("data-index", i);
+  slotCell.appendChild(slot);
+
+  row.appendChild(rankCell);
+  row.appendChild(slotCell);
+  othersTable.appendChild(row);
+}
+
+
+
+  podiumContainer.appendChild(podium);
+if (users.length > 3) {
+  const allWrapper = document.createElement("div");
+  allWrapper.style.display = "flex";
+  allWrapper.style.flexDirection = "column";
+  allWrapper.style.alignItems = "center";
+
+  allWrapper.appendChild(podium);
+  allWrapper.appendChild(othersTable);
+
+
+  podiumContainer.innerHTML = ""; // leegmaken
+  podiumContainer.appendChild(allWrapper);
+}
+
+
+  // Klik-en-plaats/swap systeem
+  const allSlots = document.querySelectorAll(".slot");
+
+  allSlots.forEach(slot => {
+    slot.addEventListener("click", () => {
+      // Als een gebruiker uit de lijst geselecteerd is
+      if (selectedUser) {
+  // Alleen plaatsen als slot leeg is
+  if (slot.innerHTML.trim() === "") {
+    const userName = selectedUser.textContent;
+
+    // Maak een nieuwe name-box voor in het slot
+    const userEl = document.createElement("div");
+    userEl.className = "name-box";
+userEl.textContent = truncateUsername(userName);
+userEl.setAttribute("data-fullname", userName);  // originele naam bewaren
+
+    slot.appendChild(userEl);
+
+    // Verwijder uit lijst
+    selectedUser.remove();
+    selectedUser = null;
+  }
+}
+
+      // Wisselen tussen twee gevulde slots
+      else if (!selectedBox) {
+        if (slot.innerHTML.trim() !== "") {
+          selectedBox = slot;
+          slot.classList.add("selected");
+        }
+      } else if (selectedBox === slot) {
+        slot.classList.remove("selected");
+        selectedBox = null;
+      } else {
+        const temp = selectedBox.innerHTML;
+        selectedBox.innerHTML = slot.innerHTML;
+        slot.innerHTML = temp;
+        selectedBox.classList.remove("selected");
+        selectedBox = null;
+      }
+    });
+  });
+});
+
+// Voorbeeld, maak een functie om rankings van deze gebruiker te verzamelen:
+function getMyRanking() {
+  // Verzamel alle gebruikersnamen in de slots met hun posities, bv:
+  const slots = document.querySelectorAll(".slot");
+  let ranking = {};
+  slots.forEach(slot => {
+    if (slot.children.length > 0) {
+const userName = slot.children[0].getAttribute("data-fullname") || slot.children[0].textContent;
+      const position = slot.getAttribute("data-index");
+      ranking[userName] = Number(position) + 1; // positie als nummer, 1-based
+    }
+  });
+  return ranking;
+}
+
+
+
+
+socket.on("winnerResult", data => {
+  const resultDiv = document.getElementById("winner-result");
+const podiumContainer = document.getElementById("podium-container");
+const lobbyNamesDiv = document.getElementById("lobby-names");
+
+// Haal de winnaar (eerste plaats) op
+const winnaars = data.podium[0]; // lijst van winnaars op plek 1
+if (winnaars && winnaars.length > 0) {
+const namen = winnaars.join(", ");
+  const titel = winnaars.length === 1 ? "🏆 The Champion is" : "🏆 The Champions are:";
+  lobbyNamesDiv.innerHTML = `<div class="champion-banner">${titel} ${namen} 🏆</div>`;
+}
+
+
+
+  if (data.error) {
+    resultDiv.textContent = "Fout: " + data.error;
+    return;
+  }
+
+  resultDiv.textContent = ""; // maak leeg
+
+  // Verberg de huidige podium opbouw (als je die hebt)
+  // Haal alle bestaande slots op en maak ze leeg
+const allSlots = document.querySelectorAll(".slot");
+allSlots.forEach(slot => slot.innerHTML = "");
+
+// Vul de slots in met de uitslag
+data.podium.forEach((group, positionIndex) => {
+  group.forEach(username => {
+    // Zoek het slot met data-index gelijk aan de huidige positie
+    const slot = document.querySelector(`.slot[data-index="${positionIndex}"]`);
+    if (slot) {
+      const nameEl = document.createElement("div");
+      nameEl.className = "name-box";
+      nameEl.textContent = username;
+      slot.appendChild(nameEl);
+    }
+  });
+});
+
+
+  // Helper functie voor suffixen
+  function getOrdinalSuffix(i) {
+    const j = i % 10,
+          k = i % 100;
+    if (j == 1 && k != 11) {
+      return "e"; // 1e
+    }
+    if (j >= 2 && j <= 4 && (k < 12 || k > 14)) {
+      return "e"; // 2e, 3e, 4e
+    }
+    return "e"; // standaard "e"
+  }
+});
+
+
+socket.on("requestRankings", () => {
+  // Stuur direct de huidige ranking zonder wachten
+  socket.emit("sendRanking", { lobbyId, username, ranking: getMyRanking() });
+});
+
+
+
+
+
+
+// ✅ Toon tijdelijke of timerboodschappen
+function showMessage(text, type = 'success') {
+  const msgDiv = document.getElementById("message");
+
+  if (type === 'timer') {
+    currentTimerText = text;
+    if (lastMessageType !== 'temp') {
+      msgDiv.textContent = text;
+      msgDiv.className = 'timer';
+      lastMessageType = 'timer';
+    }
+    return;
+  }
+
+  // Tijdelijke boodschap tonen
+  msgDiv.textContent = text;
+  if (text === "Je mag alleen je eigen spelers verwisselen.") {
+  msgDiv.className = "only-owner-warning";
+} else {
+  msgDiv.className = type;
+}
+
+  lastMessageType = 'temp';
+
+  if (messageTimeout) clearTimeout(messageTimeout);
+
+  messageTimeout = setTimeout(() => {
+    if (!timerExpired && currentTimerText) {
+      // Terug naar timer
+      msgDiv.textContent = currentTimerText;
+      msgDiv.className = 'timer';
+      lastMessageType = 'timer';
+    } else if (timerExpired && finalMessageText) {
+      // 👈 Terug naar de eindboodschap
+      msgDiv.textContent = finalMessageText;
+      msgDiv.className = 'success';
+      lastMessageType = 'success';
+    } else {
+      msgDiv.textContent = '';
+      msgDiv.className = '';
+      lastMessageType = null;
+    }
+  }, 5000);
+}
+
+function updateTimerDisplay() {
+  const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
+  const seconds = String(secondsLeft % 60).padStart(2, '0');
+  showMessage(`When the timer expires, ranking will start ${minutes}:${seconds} `, 'timer');
+}
+
+
+updateTimerDisplay();
+
+const countdownInterval = setInterval(() => {
+  secondsLeft--;
+  updateTimerDisplay();
+
+  if (secondsLeft <= 0) {
+  clearInterval(countdownInterval);
+  timerExpired = true;
+
+  document.getElementById("host-controls").style.display = "block";
+  document.getElementById("calculate-winner").style.display = "block";
+  document.querySelector(".ranking-container").style.display = "block";
+  document.getElementById("winner-result").style.display = "block";
+
+  finalMessageText = "Scroll down to rank the teams."; // 👈 opslaan 
+  
+  showMessage(finalMessageText, "success");
+}
+}, 1000);
+
+window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("host-controls").style.display = "none";
+  document.getElementById("calculate-winner").style.display = "none";
+  document.querySelector(".ranking-container").style.display = "none";
+  document.getElementById("winner-result").style.display = "none";
+});
+
+
+
+  </script>
+
+</body>
+</html>

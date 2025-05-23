@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Host-only Bozo Knop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/les.css">
+
+</head>
+<body>
+  <style></style>
+  <h1>Welkom bij Les</h1>
+  <button id="calculate-winner" style="display:none;">Bereken winnaar</button>
+
+  <div class="ranking-container">
+  <div class="ranking-title">Leaderboard</div>
+  <div id="ranking-wrapper">
+    <div id="lobby-names"></div>
+    <div id="podium-container"></div>
+  </div>
+</div>
+
+
+
+
+  <button id="bozo-button" style="display: none;">Klik hier als host</button>
+  <div id="bozo-text"></div>
+<div id="winner-result"></div>
+
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const urlParams = new URLSearchParams(window.location.search);
+    const lobbyId = urlParams.get('lobby');
+    const username = urlParams.get('username');
+
+function truncateUsername(name, maxLength = 15) {
+  return name.length > maxLength ? name.slice(0, maxLength - 3) + "..." : name;
+}
+
+
+    socket.emit("joinLesPage", { lobbyId, username });
+
+    socket.on("youAreHost", () => {
+  const button = document.getElementById("bozo-button");
+  const winnerBtn = document.getElementById("calculate-winner");
+  winnerBtn.style.display = "inline-block";
+
+  winnerBtn.addEventListener("click", () => {
+    socket.emit("calculateWinner", lobbyId);
+  });
+});
+
+
+    let selectedBox = null;
+    let selectedUser = null;
+
+
+socket.on("lobbyUsers", (users) => {
+  const lobbyNamesDiv = document.getElementById("lobby-names");
+  lobbyNamesDiv.innerHTML = "";
+
+  // Voeg klikbare gebruikers toe aan de lijst bovenaan
+  users.forEach(name => {
+    const nameEl = document.createElement("div");
+    nameEl.className = "name-box";
+nameEl.textContent = truncateUsername(name);
+
+    // Selecteren uit de lijst
+    nameEl.addEventListener("click", () => {
+      // Verwijder vorige selectie uit de naam-lijst
+if (selectedUser) {
+  selectedUser.classList.remove("selected");
+  selectedUser = null;
+}
+
+// Verwijder selectie van slot (indien actief)
+if (selectedBox) {
+  selectedBox.classList.remove("selected");
+  selectedBox = null;
+}
+
+// Selecteer de nieuw aangeklikte naam
+selectedUser = nameEl;
+nameEl.classList.add("selected");
+
+    });
+
+    lobbyNamesDiv.appendChild(nameEl);
+  });
+
+  // Dynamische podium opbouw
+  const podiumContainer = document.getElementById("podium-container");
+  podiumContainer.innerHTML = "";
+
+  const podium = document.createElement("div");
+  podium.className = "podium";
+
+  const positions = ["first", "second", "third"];
+  for (let i = 0; i < Math.min(users.length, 3); i++) {
+    const box = document.createElement("div");
+    box.className = `podium-box ${positions[i]}`;
+    box.innerHTML = `<span>${i + 1}</span><div class="slot rank-${i + 1}" data-index="${i}"></div>`;
+    podium.appendChild(box);
+  }
+
+  const othersTable = document.createElement("table");
+othersTable.className = "others-table";
+
+for (let i = 3; i < users.length; i++) {
+  const row = document.createElement("tr");
+
+  const rankCell = document.createElement("td");
+  rankCell.textContent = `${i + 1}e`;
+  rankCell.className = "rank-cell";
+
+  const slotCell = document.createElement("td");
+  const slot = document.createElement("div");
+  slot.className = "slot rank-other";
+  slot.setAttribute("data-index", i);
+  slotCell.appendChild(slot);
+
+  row.appendChild(rankCell);
+  row.appendChild(slotCell);
+  othersTable.appendChild(row);
+}
+
+
+
+  podiumContainer.appendChild(podium);
+if (users.length > 3) {
+  const allWrapper = document.createElement("div");
+  allWrapper.style.display = "flex";
+  allWrapper.style.flexDirection = "column";
+  allWrapper.style.alignItems = "center";
+
+  allWrapper.appendChild(podium);
+  allWrapper.appendChild(othersTable);
+
+
+  podiumContainer.innerHTML = ""; // leegmaken
+  podiumContainer.appendChild(allWrapper);
+}
+
+
+  // Klik-en-plaats/swap systeem
+  const allSlots = document.querySelectorAll(".slot");
+
+  allSlots.forEach(slot => {
+    slot.addEventListener("click", () => {
+      // Als een gebruiker uit de lijst geselecteerd is
+      if (selectedUser) {
+  // Alleen plaatsen als slot leeg is
+  if (slot.innerHTML.trim() === "") {
+    const userName = selectedUser.textContent;
+
+    // Maak een nieuwe name-box voor in het slot
+    const userEl = document.createElement("div");
+    userEl.className = "name-box";
+userEl.textContent = truncateUsername(userName);
+userEl.setAttribute("data-fullname", userName);  // originele naam bewaren
+
+    slot.appendChild(userEl);
+
+    // Verwijder uit lijst
+    selectedUser.remove();
+    selectedUser = null;
+  }
+}
+
+      // Wisselen tussen twee gevulde slots
+      else if (!selectedBox) {
+        if (slot.innerHTML.trim() !== "") {
+          selectedBox = slot;
+          slot.classList.add("selected");
+        }
+      } else if (selectedBox === slot) {
+        slot.classList.remove("selected");
+        selectedBox = null;
+      } else {
+        const temp = selectedBox.innerHTML;
+        selectedBox.innerHTML = slot.innerHTML;
+        slot.innerHTML = temp;
+        selectedBox.classList.remove("selected");
+        selectedBox = null;
+      }
+    });
+  });
+});
+
+// Voorbeeld, maak een functie om rankings van deze gebruiker te verzamelen:
+function getMyRanking() {
+  // Verzamel alle gebruikersnamen in de slots met hun posities, bv:
+  const slots = document.querySelectorAll(".slot");
+  let ranking = {};
+  slots.forEach(slot => {
+    if (slot.children.length > 0) {
+const userName = slot.children[0].getAttribute("data-fullname") || slot.children[0].textContent;
+      const position = slot.getAttribute("data-index");
+      ranking[userName] = Number(position) + 1; // positie als nummer, 1-based
+    }
+  });
+  return ranking;
+}
+
+
+
+
+socket.on("winnerResult", data => {
+  const resultDiv = document.getElementById("winner-result");
+const podiumContainer = document.getElementById("podium-container");
+const lobbyNamesDiv = document.getElementById("lobby-names");
+
+// Haal de winnaar (eerste plaats) op
+const winnaars = data.podium[0]; // lijst van winnaars op plek 1
+if (winnaars && winnaars.length > 0) {
+const namen = winnaars.join(", ");
+  const titel = winnaars.length === 1 ? "🏆 The Champion is" : "🏆 The Champions are:";
+  lobbyNamesDiv.innerHTML = `<div class="champion-banner">${titel} ${namen} 🏆</div>`;
+}
+
+
+
+  if (data.error) {
+    resultDiv.textContent = "Fout: " + data.error;
+    return;
+  }
+
+  resultDiv.textContent = ""; // maak leeg
+
+  // Verberg de huidige podium opbouw (als je die hebt)
+  // Haal alle bestaande slots op en maak ze leeg
+const allSlots = document.querySelectorAll(".slot");
+allSlots.forEach(slot => slot.innerHTML = "");
+
+// Vul de slots in met de uitslag
+data.podium.forEach((group, positionIndex) => {
+  group.forEach(username => {
+    // Zoek het slot met data-index gelijk aan de huidige positie
+    const slot = document.querySelector(`.slot[data-index="${positionIndex}"]`);
+    if (slot) {
+      const nameEl = document.createElement("div");
+      nameEl.className = "name-box";
+      nameEl.textContent = username;
+      slot.appendChild(nameEl);
+    }
+  });
+});
+
+
+  // Helper functie voor suffixen
+  function getOrdinalSuffix(i) {
+    const j = i % 10,
+          k = i % 100;
+    if (j == 1 && k != 11) {
+      return "e"; // 1e
+    }
+    if (j >= 2 && j <= 4 && (k < 12 || k > 14)) {
+      return "e"; // 2e, 3e, 4e
+    }
+    return "e"; // standaard "e"
+  }
+});
+
+
+socket.on("requestRankings", () => {
+  // Stuur direct de huidige ranking zonder wachten
+  socket.emit("sendRanking", { lobbyId, username, ranking: getMyRanking() });
+});
+
+
+  </script>
+</body>
+</html>

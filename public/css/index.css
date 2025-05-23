@@ -1,0 +1,91 @@
+/* Algemene reset en font */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    font-family: 'Arial', sans-serif;
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-attachment: fixed;
+    background-blend-mode: overlay;
+    background: url('feye.jpg') no-repeat center center fixed;
+    background-size: cover;
+    overflow-x: hidden; /* goed geplaatst */
+  }
+  
+  
+  
+  
+  /* Titel */
+  h1 {
+    font-size: 3em;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px #00000050;
+    color: #FFD700; /* Geel */
+  }
+  
+  /* Subtitels */
+  h2 {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+    color: #FFD700; /* Goud */
+  }
+  
+  /* Containers */
+  div {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 2px solid #ffffff50;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 15px 0;
+    width: 100%;
+    max-width: 400px;
+    backdrop-filter: blur(5px);
+  }
+  
+  /* Inputvelden */
+  input[type="text"] {
+    padding: 10px;
+    margin: 5px 0 15px;
+    width: 100%;
+    border: none;
+    border-radius: 6px;
+    font-size: 1em;
+  }
+  
+  /* Knoppen */
+  button {
+    width: 100%;
+    padding: 12px;
+    font-size: 1em;
+    background-color: #FFD700;
+    color: #006400;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  button:hover {
+    background-color: #FFC300;
+    transform: scale(1.05);
+  }
+  
+  /* Status tekst */
+  #status {
+    margin-top: 20px;
+    font-size: 1em;
+    font-style: italic;
+    color: #2c6825;
+    background-color: rgba(255, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 6px;
+  }
+  

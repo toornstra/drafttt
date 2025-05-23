@@ -1,0 +1,132 @@
+/* modern.css – NFL fantasy style voetbal draft */
+
+button {
+  background: linear-gradient(90deg, #2563eb 60%, #60a5fa 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-left: 6px;
+  transition: background 0.2s, transform 0.1s;
+}
+
+button:hover {
+  background: #1e40af;
+  color: #ffffff;
+  transform: translateY(-2px) scale(1.05);
+}
+
+.watchlistBtn.on-watchlist {
+  background: linear-gradient(90deg, #22c55e 60%, #86efac 100%); /* groen */
+}
+
+.watchlistBtn.on-watchlist:hover {
+   background: linear-gradient(90deg, #16a34a 60%, #4ade80 100%); /* iets donkerder groen */
+}
+
+#status, .pick-msg {
+  display: none;
+}
+
+
+
+
+
+body {
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+
+
+
+
+input[type="text"] {
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  width: 70%;
+  max-width: 300px;
+}
+
+#searchWrapper {
+  margin: 10px 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+
+#mainContainer {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 20px;
+}
+
+
+
+
+
+
+#namenlijst li {
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#namenlijst li:hover {
+  background-color: #2563eb;
+}
+
+#namenContainer {
+  border-radius: 8px;
+  padding: 16px;
+  background-color: #ffffff; /* optioneel: witte achtergrond */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* optioneel: zachte schaduw */
+}
+
+
+
+.toggle-header button.active {
+  background: linear-gradient(90deg, #22c55e 60%, #86efac 100%); /* groen */
+}
+
+.toggle-header button.active:hover {
+  background: linear-gradient(90deg, #16a34a 60%, #4ade80 100%); /* iets donkerder groen */
+}
+
+.active-toggle {
+  background: linear-gradient(90deg, #22c55e 60%, #86efac 100%); /* groen */
+}
+
+.active-toggle:hover {
+  background: linear-gradient(90deg, #16a34a 60%, #4ade80 100%); /* iets donkerder groen */
+  cursor: pointer; /* geeft een klik-gevoel */
+}
+
+
+/* Verschillende kleuren per positie */
+.positie-ke, .positie-label-overzicht.ke, .pick-ronde-keeper, .player-positie.positie-ke {
+  background: linear-gradient(90deg, #facc15 60%, #fde047 100%); /* geel */
+}
+.positie-de, .positie-label-overzicht.de, .pick-ronde-verdediger, .player-positie.positie-de {
+background: linear-gradient(90deg, #ffc1cc 0%, #ff69b4 100%);
+}
+.positie-mf, .positie-label-overzicht.mf, .pick-ronde-middenvelder, .player-positie.positie-mf {
+  background: linear-gradient(90deg, #22c55e 60%, #86efac 100%); /* groen */
+}
+.positie-at, .positie-label-overzicht.at, .pick-ronde-aanvaller, .player-positie.positie-at {
+  background: linear-gradient(90deg, #2563eb 60%, #60a5fa 100%); /* blauw (zoals nu) */
+}
+
+
+
+

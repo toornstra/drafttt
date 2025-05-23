@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Lobby - Doos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/lobby.css">
+</head>
+<body>
+  <h1>Lobby</h1>
+  <h2><p id="lobby-code-display">Lobby code: ...</p></h2>
+
+  <h2>Spelers in de lobby:</h2>
+  <div class="player-list-box">
+    <h2><ul id="player-list">
+      <!-- Spelers worden hier dynamisch toegevoegd -->
+    </ul>
+  </div>
+  
+  <button id="start-button" style="display: none;" onclick="startGame()">Start spel</button>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const urlParams = new URLSearchParams(window.location.search);
+    const lobbyId = urlParams.get('lobby');
+    const username = urlParams.get('username');
+
+    document.getElementById("lobby-code-display").textContent = `Lobby code: ${lobbyId}`;
+
+    socket.emit("joinLobbyPage", { lobbyId, username });
+
+    socket.on("updatePlayerList", (players) => {
+      const list = document.getElementById("player-list");
+      list.innerHTML = "";
+      players.forEach(player => {
+        const li = document.createElement("li");
+        li.textContent = player;
+        list.appendChild(li);
+      });
+    });
+
+   
+
+    socket.on("youAreHost", () => {
+      document.getElementById("start-button").style.display = "inline";
+    });
+
+    function startGame() {
+      socket.emit("startGame", lobbyId);
+    }
+
+    socket.on("gameStarted", () => {
+  const url = `/game.html?lobby=${lobbyId}&username=${username}`;
+  window.location.href = url;
+});
+
+
+
+
+  </script>
+</body>
+</html>

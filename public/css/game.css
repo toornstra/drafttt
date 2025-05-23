@@ -1,0 +1,710 @@
+#draftContainer {
+  overflow-x: auto;
+  white-space: nowrap;
+  border: 2px solid #ddd;
+  padding: 10px;
+  background-color: #ffffff;
+  max-width: 100%;
+}
+
+#draftRow {
+  display: flex;
+}
+
+.round-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 0.9em;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 8px;
+  margin: 4px;
+  background: linear-gradient(90deg, #2563eb 60%, #60a5fa 100%); /* blauw (zoals nu) */
+  border-radius: 6px;
+  border: 1px solid #000000;
+  min-width: 25px;
+  text-align: center;
+  white-space: pre-line; /* Zorgt dat \n als nieuwe regel wordt getoond */
+}
+
+.pick-tile {
+  border: 1px solid #000000;
+  padding: 10px;
+  margin: 4px;
+  text-align: center;
+  min-width: 120px;
+  max-height:35px;
+  color: #000000;
+  display: inline-block;
+  border-radius: 6px;
+  position: relative; /* nodig voor absolute positioning binnen tile */
+  text-overflow: ellipsis;
+}
+
+.positie-label-draftboard {
+  position: absolute;
+  top: 4px;
+  right: 1.8px;
+  font-size: 0.7em;
+  font-weight: bold;
+  color: white;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+
+
+
+.draft-username {
+  color: #000000;
+  display: block;
+  padding-bottom: 4px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid black; /* witte lijn met lichte transparantie */
+}
+
+
+.draft-achternaam {
+  color: #000000;
+  font-weight: 700;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.draft-achternaamen {
+  color: #000000;
+  position: relative;
+  top: -30px;
+}
+
+
+
+.draft-cell-content {
+  position: relative;
+  width: 100%;
+  height: 30px; /* Zorg voor vaste hoogte */
+  padding-top: 27px;
+  box-sizing: border-box;
+}
+
+
+.positie-label-overzicht {
+  position: absolute;
+  bottom: -5px;
+  left: -5px;
+  font-size: 0.7em;
+  font-weight: bold;
+  padding: 2px 4px;
+  color: white;
+  border-radius: 4px;
+}
+
+
+
+
+.speler-naam {
+  position: absolute;
+  bottom: -5px;
+  font-size: 1em;
+  width: 100%;
+}
+
+
+
+#namenlijst {
+  list-style: none;
+  padding: 0;
+  max-height: 450px; /* Voeg een maximale hoogte toe voor de lijst */
+  overflow-y: auto;  /* Zorgt ervoor dat de lijst scrollt wanneer deze groter wordt dan de max-height */
+  width: 100%;
+  border: 2px solid #ddd; /* Blauwe rand */
+  border-radius: 6px;
+  margin: 0; /* Verwijder onnodige marges die de ruimte kunnen beïnvloeden */
+}
+
+#namenlijst li {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #ddd;
+}
+
+#namenlijst li span.naam {
+  width: 160px;   /* vaste breedte voor naam */
+  flex-shrink: 0;
+}
+
+#namenlijst li span.positie {
+  width: 100px;   /* vaste breedte voor positie */
+  flex-shrink: 0;
+}
+
+#namenlijst li img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  margin-left: 10px;
+  margin: 5px 20px 0 0;
+}
+
+#namenlijst li .watchlistBtn {
+  margin-left: auto; /* duwt deze knop naar rechts */
+  border: none;
+  font-size: 1.2em;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+#namenlijst img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%; /* Zorg ervoor dat het een cirkel is */
+  margin-left: 10px; /* Ruimte tussen de naam en de afbeelding */
+}
+
+
+
+.player-card {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+}
+
+.player-foto {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 1px solid #111;
+}
+
+.player-info {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  justify-content: center;
+}
+
+.player-naam {
+  font-weight: bold;
+  font-size: 1rem;
+  color: #111;
+}
+
+.player-positie {
+  font-size: 0.85rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  color: white;
+  border-radius: 4px;
+  display: inline-block;
+  width: 18px;          /* vaste breedte van 10px */
+}
+
+
+
+
+
+
+
+
+
+
+
+#namenContainer {
+  flex: 0 0 70%; /* Namenlijst neemt nu 70% van de breedte in */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+
+#headerAndSearch {
+  display: flex;
+  align-items: center;
+  width: 100%; /* Zorg ervoor dat dit element de volledige breedte van de namenlijst gebruikt */
+  margin-bottom: 10px;
+  overflow: hidden; /* Zorg dat niks uitsteekt buiten de randjes */
+  margin-top: -27px;
+}
+
+#searchWrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 10px; /* Zelfde padding als headers */
+  width: 100%; /* Zorg ervoor dat de zoekbalk de rest van de ruimte benut */
+}
+
+#searchInput {
+  width: 100%;
+  padding: 8px 30px 8px 8px;
+  background: transparent;
+  font-size: 1em;
+  font-weight: bold;
+  outline: none;
+  border: 2px solid #2563eb; /* dunne grijze rand */
+  border-radius: 6px;     /* optioneel: afgeronde hoeken */
+  color: #ffffff;          /* blauwe tekstkleur */
+  background: linear-gradient(90deg, #2563eb 60%, #60a5fa 100%);
+}
+
+#searchInput::placeholder {
+  color: #ffffff; /* blauwe kleur voor de placeholder */
+}
+
+#clearSearch {
+  position: absolute;
+  right: 1px;
+  top: 50%;
+  transform: translateY(-52%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2em;
+  color: #ffffff; /* Mooie lichte kleur voor de clear-knop */
+}
+
+#clearSearch:hover {
+  color: #e9e9e9; /* Wordt iets donkerder bij hover */
+}
+
+.headerRow button {
+  margin-left: 10px;
+  padding: 5px 10px;
+  font-size: 1.1em;
+  cursor: pointer;
+}
+
+.headerRow {
+  display: flex;
+  flex: 2;
+  height: 37px;
+}
+
+#toggleNamenlijst,
+#toggleDraftoverzicht,
+#togglePositieoverzicht {
+  height: 33px; /* Bijvoorbeeld */
+  padding: 3px 10px 6px 10px; /* iets minder top-padding, iets meer bottom-padding */
+  font-size: 1.1em;
+  align-self: center;
+}
+
+
+#namenHeader, #positieHeader {
+  display: none;
+}
+
+
+
+
+#footballField {
+  position: relative; /* Belangrijk zodat players absoluut hierin kunnen staan */
+  overflow: hidden; /* Voorkomt dat spelers buiten het veld verdwijnen */
+  flex: 0 0 30%; /* Voetbalveld neemt nu 30% van de breedte in */
+  height: 500px;
+  background-image: url('voetbalveld.jpg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  display: flex;
+  margin-top: 2px;
+}
+
+.player {
+  border-radius: 5px;
+  text-align: center;
+  color: white; /* Dit maakt de tekst wit */
+  font-weight: 700;
+  position: absolute; /* Wordt gezet als ze worden gedropt */
+}
+
+
+.player-ghost {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.4;
+  border: 1px dashed white;
+  z-index: 5;
+}
+
+.drop-preview {
+  position: absolute;
+  pointer-events: none;
+  background-color: rgba(34, 197, 94, 0.6); /* semi-transparant groen */
+  border: 2px dashed #22c55e;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: bold;
+  color: white;
+  z-index: 5;
+}
+
+
+#footballFieldWrapper {
+  margin-left: 0px;
+  flex: 1;
+  border-radius: 6px; /* Zelfde mooie afgeronde hoeken */
+}
+
+
+#footballField,
+#myPicksContainer, #watchlistSection {
+  display: none;
+}
+
+
+#myPicksList li {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #60a5fa 100%);
+  font-size: 1em;
+  color: #ffffff;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  min-height: 44px;
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.3);
+  backdrop-filter: blur(2px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: 350px;
+  transition: all 0.3s ease;
+
+}
+
+#myPicksList li:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 16px rgba(96, 165, 250, 0.45);
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 60%, #93c5fd 100%);
+  transition: all 0.3s ease;
+
+}
+
+#myPicksList li em {
+  color: #ffffff;
+  font-weight: 700;
+  font-style: italic;
+  margin-left: 8px;
+}
+
+#myPicksList li .pick-number {
+  font-weight: 700;
+  color: #ffffff;
+  min-width: 24px;
+}
+
+
+
+
+.toggle-header button {
+  font-size: 18px;       /* kleinere tekst */
+  padding: 7px 10px;      /* minder ruimte binnen de knop */
+  border-radius: 4px;    /* afgeronde hoeken (optioneel) */
+}
+
+
+
+
+
+.watchlistBtn.on-watchlist {
+  background-color: transparent; /* geen kleur */
+  color: gold; /* of wat je wilt voor de ster */
+  border: none;
+}
+
+.watchlistBtn:hover {
+  color: orange; /* lichte hoverkleur */
+}
+
+.watchlist-img {
+  width: 40px;
+  height: 40px;
+  vertical-align: middle;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.watchlist-button {
+  margin-left: 10px;
+  background-color: #ef4444;
+}
+
+.watchlist-button:hover {
+  background-color: #dc2626;
+}
+
+
+
+
+
+
+#watchlistContainer {
+  list-style: none;
+  
+}
+
+#watchlistContainer li.watchlist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 60%, #60a5fa 100%);
+  font-size: 1em;
+  color: #ffffff;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  min-height: 44px;
+  box-shadow: 0 4px 10px rgba(96, 165, 250, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  max-width: 350px;
+}
+
+#watchlistContainer li.watchlist-item:hover {
+  transform: scale(1.02);
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 60%, #93c5fd 100%);
+  box-shadow: 0 6px 14px rgba(96, 165, 250, 0.4);
+}
+
+
+
+/* Placeholder-mode */
+#watchlistContainer li.placeholder {
+  justify-content: flex-start;
+  background: linear-gradient(90deg, #2563eb 60%, #60a5fa 100%);
+  color: #9daf9c;
+  font-style: italic;
+  font-weight: 400;
+}
+
+#watchlistContainer li.placeholder:hover {
+  transform: none;
+  box-shadow: none;
+  background: #346ab5;
+}
+
+#watchlistContainer .pick-number {
+  margin-right: 12px;
+  font-weight: 700;
+  color: #ffffff;
+  min-width: 22px;
+}
+
+#watchlistContainer .awaiting-text {
+  font-style: italic;
+  color: #ffffff;
+  font-weight: 700;
+
+}
+
+
+
+/* Binnenin de list item */
+#watchlistContainer li span {
+  margin-right: 8px;
+}
+
+#myPicksContainer, #watchlistContainer {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+
+.toggle-header {
+  margin-bottom: 10px; /* Voeg extra ruimte toe tussen buttons en content */
+}
+
+#watchlistContainer li.chosen {
+  background: repeating-linear-gradient(
+    45deg,
+    #4b5563 0px,
+    #4b5563 10px,
+    #374151 10px,
+    #374151 20px
+  ); /* grijs gestreept patroon */
+  color: white;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* Voeg eventueel een overlay label toe */
+#watchlistContainer li.chosen::after {
+  content: "Gekozen";
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 0.75em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+
+
+
+
+
+
+
+.draft-cell-content {
+  position: relative;
+  width: 100%;
+  height: 30px; /* Zorg voor vaste hoogte */
+  padding-top: 27px;
+  box-sizing: border-box;
+}
+
+
+.positie-label-overzicht {
+  position: absolute;
+  bottom: -5px;
+  left: -5px;
+  font-size: 0.7em;
+  font-weight: bold;
+  padding: 2px 4px;
+  color: white;
+  border-radius: 4px;
+}
+
+.draft-achternaamen {
+  color: #000000;
+  position: relative;
+  top: -30px;
+}
+
+#overzichtTable td, #positieTable tr {
+  width: 120px;
+  height: 30px;
+  text-align: center;
+  padding: 4px;
+}
+
+
+#overzichtTable {
+  border-collapse: collapse;
+  width: 100%;  /* Volledige breedte van de container benutten */
+  background: #fff;
+}
+
+#overzichtTable th,
+#overzichtTable td {
+  border: 1px solid #1e40af;
+  padding: 8px;
+  text-align: center;
+}
+
+#overzichtTable th {
+  background: linear-gradient(90deg, #2563eb 60%, #60a5fa 100%);
+  color: white;
+  font-weight: 700;
+}
+
+#overzichtTable td em {
+  color: #888;
+  font-style: italic;
+}
+
+td {
+  text-align: center;
+}
+
+
+
+
+
+/* Zorg dat positieTable exact hetzelfde oogt als overzichtTable */
+#positieTable {
+  border-collapse: collapse;
+  width: 100%;
+  background: #fff;
+}
+
+#positieTable th,
+#positieTable td {
+  border: 1px solid #1e40af;
+  padding: 8px;
+  height: 30px;
+  width: 120px;
+  text-align: center;
+}
+
+#positieTable th {
+  background: linear-gradient(90deg, #2563eb 60%, #60a5fa 100%);
+  color: white;
+  font-weight: 700;
+}
+
+#positieTable td em {
+  color: #888;
+  font-style: italic;
+}
+
+
+
+.pick-ronde {
+  font-size: 0.7em;
+  font-weight: bold;
+  color: white;
+  background-color: #2563eb;
+  border-radius: 4px;
+  padding: 2px 4px;
+  display: inline-block;
+  margin-bottom: 2px;
+}
+
+.pick-naam {
+  color: #000;
+  font-size: 1em;
+}
+
+
+
+
+
+
+#timer {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 5px;
+  margin-top: 10px;
+}
+
+#timer-label {
+  font-size: 20px;
+  color: rgb(0, 0, 0);
+}
+
+#timer-value {
+  font-size: 22px;
+  color: rgb(0, 0, 0);
+}
+
+/* Knipperende animatie bij urgente tijd (onder de 10 seconden) */
+@keyframes blinkColor {
+  0%   { color: orange; }
+  50%  { color: rgb(0, 0, 0); }
+  100% { color: orange; }
+}
+
+#timer-value.urgent {
+  animation: blinkColor 2s steps(1, start) infinite;
+}
+
+#timerDraftWrapper {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 15px;
+}
+

@@ -1,0 +1,60 @@
+@media screen and (max-device-width: 480px) and (orientation: portrait) {
+  #mainContainer {
+    flex-direction: column !important;
+  }
+
+  #namenContainer,
+  #footballFieldWrapper {
+    width: 100% !important;
+  }
+}
+
+
+
+@media screen and (max-width: 600px) and (orientation: portrait) {
+  #headerAndSearch {
+    flex-direction: column; /* Zet alles onder elkaar op mobiel */
+    align-items: stretch;
+  }
+
+  .headerRow {
+    flex-direction: row; /* buttons naast elkaar */
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .headerRow button {
+    flex: 1 1 auto;  /* zorgt dat knoppen kunnen schalen */
+    margin-left: 5px;
+    margin-right: 5px;
+    margin-top: 5px;
+    font-size: 1em;
+  }
+
+  #searchWrapper {
+    width: 100%;
+    margin-top: 0px;
+  }
+
+  #searchInput {
+    width: 100%;
+    font-size: 1em;
+  }
+
+  #clearSearch {
+  right: 30px;
+  transform: translateY(-55%);
+  }
+
+  #mainContainer {
+  position: relative;
+  left: -20px; /* schuift 20px naar links */
+}
+
+#footballFieldWrapper {
+  position: relative;
+  left: 20px; /* schuift 20px naar links */
+}
+
+}

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Draft</title>
+  <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+  <h1>Draft</h1>
+
+  <div>
+    <h2>Lobby starten</h2>
+    <input type="text" id="start-username" placeholder="Jouw naam" />
+    <button onclick="createLobby()">Start lobby</button>
+  </div>
+
+  <div>
+    <h2>Lobby joinen</h2>
+    <input type="text" id="join-username" placeholder="Jouw naam" />
+    <input type="text" id="lobby-code" placeholder="Lobby code" />
+    <button onclick="joinLobby()">Join lobby</button>
+  </div>
+
+  <p id="status"></p>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    function createLobby() {
+      const username = document.getElementById("start-username").value;
+      if (username.trim() === "") return alert("Vul een naam in.");
+      socket.emit("createLobby", username);
+    }
+
+    function joinLobby() {
+      const username = document.getElementById("join-username").value;
+      const lobbyId = document.getElementById("lobby-code").value;
+      if (username.trim() === "" || lobbyId.trim() === "") return alert("Vul alle velden in.");
+      socket.emit("joinLobby", { lobbyId, username });
+    }
+
+    socket.on("lobbyCreated", (lobbyId) => {
+  const username = document.getElementById("start-username").value;
+  window.location.href = `/lobby.html?lobby=${lobbyId}&username=${username}`;
+});
+
+
+    socket.on("lobbyJoined", (lobbyId) => {
+  const username = document.getElementById("join-username").value;
+  window.location.href = `/lobby.html?lobby=${lobbyId}&username=${username}`;
+});
+
+
+    socket.on("error", (msg) => {
+      document.getElementById("status").textContent = msg;
+    });
+  </script>
+
+</body>
+</html>

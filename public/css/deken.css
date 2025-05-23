@@ -1,0 +1,195 @@
+/* deken.css */
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+/* Elk team krijgt z'n eigen voetbalveld achtergrond */
+.team {
+  background-image: url('voetbalveld.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  margin: 20px;
+  padding: 15px;
+  border-radius: 12px;
+  display: inline-block;
+  vertical-align: top;
+  width: 250px;
+  height: 350px; /* vaste hoogte voor mooi veldframe */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  color: white;
+}
+
+.team {
+  position: relative;
+  width: 270px;
+  height: 350px;
+  background-image: url('voetbalveld.jpg');
+  background-size: cover;
+  background-position: center;
+  color: white;
+}
+
+.position {
+  width: 80px;        /* vaste breedte */
+  height: 30px;       /* hoogte naar wens */
+  left: 50%;          /* horizontaal middelpunt van de container */
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  cursor: default; /* geen pointer als niet klikbaar */
+  color: white;
+  user-select: none;
+  /* eventueel tekstcentrering */
+  text-align: center;
+  padding: 5px;
+}
+
+
+.selected-player {
+  outline: 3px dotted #ffffff;
+  border-radius: 4px;
+}
+
+
+
+/* Achtergrondlaag voor tekstleesbaarheid */
+.team h2,
+.team ul,
+.team label {
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 6px;
+  border-radius: 6px;
+}
+
+/* Lijst van spelers */
+.team ul {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 10px;
+}
+
+.team li {
+  margin: 5px 0;
+}
+
+/* Ranking dropdown */
+.team select {
+  margin-top: 10px;
+  padding: 4px;
+  font-size: 16px;
+}
+
+/* Nieuwe container om team-veld + naam te groeperen */
+.team-container {
+  display: inline-block;
+  text-align: center;
+  margin: 20px;
+}
+
+.team-container h2 {
+  font-size: 20px;
+  background: linear-gradient(90deg, #2563eb 60%, #60a5fa 100%);
+  color: #fff;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 700;
+  min-width: 100px;       /* minimale breedte van 100px */
+  max-width: 250px;
+  width: fit-content;     /* groeit mee met de inhoud */
+  margin: 0 auto;         /* centreert het element horizontaal */
+  text-align: center;
+}
+
+
+
+.team-container {
+  display: inline-block;
+  margin: 20px;
+  text-align: center;
+}
+
+
+
+
+.players-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.player-card {
+  color: white;
+  min-width: 90px;
+  text-align: center;
+  font-weight: bold;
+  cursor: default;
+  user-select: none;
+}
+
+
+
+
+.ranking-box {
+  margin-top: 8px;
+}
+
+.ranking-box label {
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: white;
+  display: inline-block;
+}
+
+
+
+
+/* Buttons */
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  margin: 10px;
+  border: none;
+  border-radius: 8px;
+  background-color: #28a745;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #218838;
+}
+
+
+
+.only-owner-warning {
+  color: orange;
+}
+
+
+
+#message {
+  margin: 10px auto 0 auto;  /* bovenmarge 10px, horizontaal centreren */
+  padding: 10px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 20px;
+  border-bottom: 2px solid #2563eb;
+}
+
+
+#ranking-form {
+    text-align: center;
+}
+
+
+
+

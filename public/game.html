@@ -1,0 +1,1112 @@
+<!-- public/game.html -->
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Drafttt</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial; padding: 5px; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 5px 0; }
+    #status { margin: 20px 0; font-size: 1.2em; }
+    .pick-msg { margin: 5px 0; color: #333; }
+  </style>
+  <link rel="stylesheet" href="css/game.css">
+  <link rel="stylesheet" href="css/moderne.css">
+  <link rel="stylesheet" href="css/mobile.css">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <div id="timer">
+    <div id="timer-label">You're on the clock</div>
+    <div id="timer-value">00:30</div>
+  </div>
+
+  <div id="draftContainer">
+    <div id="draftRow"></div>
+  </div>
+  
+  <div id="mainContainer">
+    <div id="namenContainer">
+      <div id="headerAndSearch">
+        <div class="headerRow">
+          <div id="namenHeader">Name</div>
+          <div id="positieHeader">Positie</div>
+          <button id="toggleNamenlijst">📋 Player Pool</button>
+          <button id="toggleDraftoverzicht">📊 Draft Board</button>
+          <button id="togglePositieoverzicht">📌 Position View</button>       
+        </div>
+        
+        <div id="searchWrapper">
+          <input type="text" id="searchInput" placeholder="Search a Player...">
+          <button id="clearSearch">✖</button>
+        </div>
+      </div>
+      <ul id="namenlijst"></ul>
+
+      <div id="draftoverzicht">
+        <table id="overzichtTable"></table>
+      </div>
+
+      <div id="positieoverzicht">
+        <table id="positieTable" border="1">
+        </table>
+      </div>
+      
+            <div id="startDraftContainer"></div>
+
+    
+
+    </div>
+
+    <div id="footballFieldWrapper">
+      <div class="toggle-header">
+        <button id="showFieldBtn">Footballfield</button>
+        <button id="showPicksBtn">Mijn XI</button>
+        <button id="showWatchBtn">Watchlist</button>
+      </div>
+      
+      <div id="footballField"></div>
+      <div id="myPicksContainer">
+        <ul id="myPicksList"></ul>
+      </div>
+      <div id="watchlistSection">
+        <ul id="watchlistContainer"></ul>
+      </div>
+    </div>
+    
+  </div>
+  
+  
+  <div id="status"></div> <!-- of iets anders waar je de status wilt weergeven -->
+
+
+  <script>
+    const socket = io();
+    const gekozenSpelers = new Set();
+    const watchlist = new Set();
+    let currentPlayer = null;
+    let lobbyId, username;
+    let draftFinished = false;
+    let dropPreviewDiv = null;
+
+
+
+    function shortenName(name, max = 15) {
+  return name.length > max ? name.slice(0, max - 3) + "..." : name;
+}
+
+
+    
+    socket.on("updateTimer", seconds => {
+  const timerDiv = document.getElementById("timer");
+  const timerLabel = document.getElementById("timer-label");
+  const timerValue = document.getElementById("timer-value");
+
+  if (!currentPlayer || !username) return;
+
+  const formatted = `00:${seconds < 10 ? "0" + seconds : seconds}`;
+  if (currentPlayer === username) {
+    timerLabel.textContent = "You're on the clock:";
+    timerValue.textContent = formatted;
+  } else {
+    timerLabel.textContent = `${currentPlayer} is on the clock:`;
+    timerValue.textContent = formatted;
+  }
+
+  // Voeg of verwijder de urgente klasse op basis van de tijd
+  if (seconds <= 10) {
+    timerValue.classList.add("urgent");
+  } else {
+    timerValue.classList.remove("urgent");
+  }
+});
+
+
+
+    socket.on("autoPickNotice", ({ username, pick }) => {
+      updateStatus(`<strong>${username}</strong> heeft niet op tijd gekozen. Automatisch gekozen: <strong>${pick}</strong>.`);
+    });
+
+    socket.on("makePickServer", ({ lobbyId, username, pick }) => {
+      socket.emit("makePick", { lobbyId, username, pick }); // Laat de client alsnog gewoon via de normale flow picken
+    });
+
+    function updateStatus(message) {
+      const statusDiv = document.getElementById("status");
+      statusDiv.innerHTML = message;
+    }
+
+
+
+function autoPick() {
+  const beschikbareSpelers = window.namen.filter(p => !gekozenSpelers.has(p.name));
+  if (beschikbareSpelers.length === 0) return;
+
+  const randomIndex = Math.floor(Math.random() * beschikbareSpelers.length);
+  const willekeurigeSpeler = beschikbareSpelers[randomIndex];
+
+  socket.emit("makePick", {
+    lobbyId,
+    username,
+    pick: willekeurigeSpeler.name
+  });
+}
+
+
+
+    function afkortingPositie(volledigePositie) {
+  const mapping = {
+    "keeper": "KE",
+    "verdediger": "DE",
+    "middenvelder": "MF",
+    "aanvaller": "AT"
+  };
+  return mapping[volledigePositie.toLowerCase()] || volledigePositie;
+}
+
+
+    // checkt of draft is finished
+    socket.on("draftFinished", picks => {
+  draftFinished = true;
+  updateStatus("De draft is afgelopen!");
+});
+
+
+socket.on("removeNameFromList", (pickedName) => {
+  // 1. Voeg toe aan de lijst van gekozen spelers
+  gekozenSpelers.add(pickedName);
+
+  // 2. Her-render de namenlijst met eventuele zoekterm
+  const searchValue = document.getElementById("searchInput").value;
+  renderList(searchValue);
+
+  // 3. Verwijder uit de algemene lijst als het item nog bestaat
+  const nameItem = document.querySelector(`#namenlijst li[data-name="${pickedName}"]`);
+  if (nameItem) nameItem.remove();
+
+  // 4. Markeer op de watchlist als gekozen en verwijder de knop
+  const watchItem = document.querySelector(`#watchlistContainer li[data-name="${pickedName}"]`);
+if (watchItem) {
+  watchItem.classList.add("chosen");
+  // Laat de knop staan — niets verwijderen!
+}
+
+});
+
+
+
+    fetch("/namen")
+      .then(r => r.json())
+      .then(({ kolomnaam, namen }) => {
+        document.getElementById("namenHeader").textContent = kolomnaam;
+        window.namen = namen; // global for renderList
+
+        document
+          .getElementById("searchInput")
+          .addEventListener("input", e => renderList(e.target.value));
+
+        renderList();
+      });
+
+    function normalize(str) {
+      return str.normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+    }
+
+    function renderList(filter = "") {
+  const ul = document.getElementById("namenlijst");
+  ul.innerHTML = "";
+  const nf = normalize(filter);
+
+  window.namen
+    .filter(p => {
+      const matchesSearch = normalize(p.name).includes(nf);
+      const notPicked = !gekozenSpelers.has(p.name);
+      if (filter.length > 0) {
+        return matchesSearch;
+      } else {
+        return matchesSearch && notPicked;
+      }
+    })
+    .forEach(p => {
+  const li = document.createElement("li");
+
+  // Zet deze regel buiten de template literal!
+  const afkorting = afkortingPositie(p.positie);
+
+  li.innerHTML = `
+    <div class="player-card">
+      <img class="player-foto" src="/images/${p.img}" alt="${p.name}" />
+      <div class="player-info">
+        <div class="player-naam">${p.name}</div>
+        <div class="player-positie positie-${afkorting.toLowerCase()}">${afkorting}</div>
+      </div>
+      <button class="watchlistBtn">⭐</button>
+    </div>
+  `;
+
+
+
+
+const watchBtn = li.querySelector(".watchlistBtn");
+
+if (watchlist.has(p.name)) {
+  watchBtn.classList.add("on-watchlist");
+} else {
+  watchBtn.classList.remove("on-watchlist");
+}
+
+watchBtn.onclick = (e) => {
+  e.stopPropagation(); // voorkom dat pick gebeurt
+  toggleWatchlist(p.name);
+  watchBtn.classList.toggle("on-watchlist");
+};
+
+
+      li.onclick = () => {
+  if (draftFinished) return;
+  if (username !== currentPlayer) return;
+
+  socket.emit("makePick", {
+    lobbyId,
+    username,
+    pick: p.name
+  });
+
+  gekozenSpelers.add(p.name);
+  renderList(document.getElementById("searchInput").value);
+};
+
+
+      if (gekozenSpelers.has(p.name)) {
+        li.style.opacity = "0.5";
+        li.style.pointerEvents = "none";
+      }
+
+      ul.appendChild(li);
+    });
+}
+
+
+    // --- Socket.IO events voor lobby & draft ---
+  socket.on("connect", () => {
+  const params = new URLSearchParams(location.search);
+  lobbyId = params.get("lobby");
+  username = params.get("username");
+
+  sessionStorage.setItem("username", username); // ✅ zet hier de gebruikersnaam op in sessionStorage
+
+  socket.username = username;
+  socket.emit("joinLobbyPage", { lobbyId, username });
+});
+
+
+
+    socket.on("youAreHost", () => {
+  const btn = document.createElement("button");
+  btn.id = "startDraftBtn";
+  btn.textContent = "Start Draft";
+  btn.onclick = () => socket.emit("beginDraft", lobbyId);
+  // plaats 'm in de nieuwe div
+  const container = document.getElementById("startDraftContainer");
+  container.appendChild(btn);
+});
+
+
+    socket.on("startDraft", ({ round, currentPlayer: p, players }) => {
+      currentPlayer = p;
+      buildDraftBoard(players);
+      updateStatus(
+        `Draft begonnen! <strong>Ronde ${round}</strong>. <strong>${p}</strong> is aan de beurt.`
+      );
+  updateStatus(`Draft begonnen! <strong>Ronde ${round}</strong>. <strong>${p}</strong> is aan de beurt.`);
+    });
+
+    socket.on("nextTurn", ({ round, currentPlayer: p }) => {
+  currentPlayer = p;
+  updateStatus(`Ronde ${round}. <strong>${p}</strong> is aan de beurt.`);
+  scrollToTile(round, p);
+
+    });
+
+    socket.on("draftFinished", () => {
+      updateStatus("✅ Draft is klaar!");
+    });
+
+    socket.on("draftStateUpdate", timeline => {
+  const myList = document.getElementById("myPicksList");
+
+  // 1. Update alle draft tiles, zoals gewoonlijk
+  timeline.forEach(({ round, username, pick }) => {
+    const speler = window.namen.find(p => p.name === pick);
+    const pickObj = speler ?? { name: pick, positie: "?" };
+    updateDraftTile(round, username, pickObj);
+  });
+
+  // 2. Filter de picks van de huidige gebruiker
+  const myPicks = timeline.filter(p => p.username === socket.username);
+
+  // 3. Zorg dat er altijd 11 picks zijn weergegeven
+  for (let i = 0; i < 12; i++) {
+    let li = myList.children[i];
+    if (!li) {
+      li = document.createElement("li");
+      myList.appendChild(li);
+    }
+
+    const pickObj = myPicks[i];
+    if (pickObj && pickObj.pick) {
+      const speler = window.namen.find(p => p.name === pickObj.pick) ?? { name: pickObj.pick, positie: "?" };
+      li.className = "";
+      li.innerHTML = `
+        <span class="pick-number">${i + 1}</span>
+        <img src="/images/${speler.img || 'default.png'}" alt="${speler.name}" style="width: 40px; height: 40px; vertical-align: middle; border-radius: 50%; margin-right: 8px;">
+        ${speler.name} - ${speler.positie}
+      `;
+    } else {
+      li.className = "awaiting";
+      li.innerHTML = `
+        <span class="pick-number">${i + 1}</span>
+        <span class="awaiting-text">Awaiting pick...</span>
+      `;
+    }
+  }
+
+  updateDraftOverview(timeline);
+});
+
+
+
+
+
+
+    function updateStatus(msg) {
+      document.getElementById("status").innerHTML = msg;
+    }
+
+    document.getElementById("clearSearch").onclick = () => {
+      const inp = document.getElementById("searchInput");
+      inp.value = "";
+      inp.dispatchEvent(new Event("input"));
+    };
+
+
+
+
+
+const footballField = document.getElementById("footballField");
+
+
+
+
+socket.on("playerPicked", ({ round, playerName, pickedName }) => {
+  const msg = document.createElement("p");
+  msg.className = "pick-msg";
+  msg.textContent = `${playerName} koos: ${pickedName}`;
+  document.body.appendChild(msg);
+
+  const speler = window.namen.find(p => p.name === pickedName);
+  const achtername = speler ? speler.achtername : pickedName;
+
+  // Maak een nieuw div element voor de speler
+  const playerDiv = document.createElement("div");
+  playerDiv.classList.add("player");
+  playerDiv.textContent = achtername;  // Toon de achternaam van de speler
+
+  // Voeg de speler toe aan het footballField
+  footballField.appendChild(playerDiv);
+
+  // Maak de speler draggable (als dat nodig is)
+  maakSpelerDraggable(playerDiv);
+  voegTouchSupportToe(playerDiv);
+});
+
+
+socket.on("redirectToDeken", ({ lobbyId }) => {
+  const url = `/deken.html?lobby=${lobbyId}&username=${encodeURIComponent(username)}`;
+  window.location.href = url;
+});
+
+  
+
+  // Toggle-functionaliteit
+  const showFieldBtn = document.getElementById("showFieldBtn");
+  const showPicksBtn = document.getElementById("showPicksBtn");
+  const showWatchBtn = document.getElementById("showWatchBtn")
+  const myPicksContainer = document.getElementById("myPicksContainer");
+  const watchlistSection = document.getElementById("watchlistSection");
+
+function setActiveButton(activeBtn) {
+  [showFieldBtn, showPicksBtn, showWatchBtn].forEach(btn => {
+    btn.classList.remove("active");
+  });
+  activeBtn.classList.add("active");
+}
+
+function showField() {
+  footballField.style.display = "block";
+  myPicksContainer.style.display = "none";
+  watchlistSection.style.display = "none";
+  setActiveButton(showFieldBtn);
+}
+
+function showPicks() {
+  footballField.style.display = "none";
+  myPicksContainer.style.display = "block";
+  watchlistSection.style.display = "none";
+  setActiveButton(showPicksBtn);
+}
+
+function showWatch() {
+  footballField.style.display = "none";
+  myPicksContainer.style.display = "none";
+  watchlistSection.style.display = "block";
+  setActiveButton(showWatchBtn);
+}
+
+
+showFieldBtn.addEventListener("click", showField);
+showPicksBtn.addEventListener("click", showPicks);
+showWatchBtn.addEventListener("click", showWatch);
+
+  // Standaard: laat footballfield zien
+  showField();
+  setActiveButton(showFieldBtn);
+
+
+  const toggleNamenlijstBtn = document.getElementById("toggleNamenlijst");
+  const toggleDraftoverzichtBtn = document.getElementById("toggleDraftoverzicht");
+  const togglePositieoverzichtBtn = document.getElementById("togglePositieoverzicht");
+
+// De containers voor namenlijst en draftoverzicht
+const namenlijstContainer = document.getElementById("namenlijst");
+const draftoverzicht = document.getElementById("draftoverzicht");
+const positieoverzicht = document.getElementById("positieoverzicht");
+
+function clearActiveToggle() {
+  toggleNamenlijstBtn.classList.remove("active-toggle");
+  toggleDraftoverzichtBtn.classList.remove("active-toggle");
+  togglePositieoverzichtBtn.classList.remove("active-toggle");
+}
+
+function showNamenlijst() {
+  namenlijstContainer.style.display = "block";
+  draftoverzicht.style.display = "none";
+  positieoverzicht.style.display = "none";
+
+  clearActiveToggle();
+  toggleNamenlijstBtn.classList.add("active-toggle");
+}
+
+function showDraftoverzicht() {
+  namenlijstContainer.style.display = "none";
+  draftoverzicht.style.display = "block";
+  positieoverzicht.style.display = "none";
+
+  clearActiveToggle();
+  toggleDraftoverzichtBtn.classList.add("active-toggle");
+}
+
+function showPositieoverzicht() {
+  namenlijstContainer.style.display = "none";
+  draftoverzicht.style.display = "none";
+  positieoverzicht.style.display = "block";
+
+  clearActiveToggle();
+  togglePositieoverzichtBtn.classList.add("active-toggle");
+}
+
+
+// Event listeners
+toggleNamenlijstBtn.addEventListener("click", showNamenlijst);
+toggleDraftoverzichtBtn.addEventListener("click", showDraftoverzicht);
+togglePositieoverzichtBtn.addEventListener("click", showPositieoverzicht);
+
+
+// Initieel tonen we de namenlijst
+showNamenlijst();
+
+
+
+ document.addEventListener("DOMContentLoaded", () => {
+  const myPicksList = document.getElementById("myPicksList");
+
+  for (let i = 1; i <= 12; i++) {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="pick-number">${i}.</span> <em>Awaiting Pick</em>`;
+    myPicksList.appendChild(li);
+  }
+});
+
+
+
+function toggleWatchlist(name) {
+  if (watchlist.has(name)) {
+    watchlist.delete(name);
+  } else {
+    watchlist.add(name);
+  }
+  renderWatchlist();
+  renderList(document.getElementById("searchInput").value); // <- zorgt dat ⭐-knoppen updaten
+}
+
+
+function renderWatchlist() {
+  const watchlistArray = [...watchlist];
+  const container = document.getElementById("watchlistContainer");
+
+  for (let i = 0; i < 11; i++) {
+    const li = container.querySelector(`li[data-slot="${i}"]`);
+    li.className = "watchlist-item"; // reset classes
+
+    const spelerNaam = watchlistArray[i];
+
+    if (spelerNaam) {
+      const speler = window.namen.find(p => p.name === spelerNaam);
+      if (!speler) continue;
+
+      li.dataset.name = speler.name;
+
+      const isGekozen = gekozenSpelers.has(speler.name);
+      if (isGekozen) {
+        li.classList.add("chosen");
+      } else {
+        li.onclick = () => {
+          if (draftFinished) return;
+          if (username !== currentPlayer) return;
+
+          socket.emit("makePick", {
+            lobbyId,
+            username,
+            pick: speler.name
+          });
+
+          gekozenSpelers.add(speler.name);
+          renderWatchlist();
+          renderList(document.getElementById("searchInput").value);
+        };
+      }
+
+      const img = `<img src="/images/${speler.img}" class="watchlist-img">`;
+      const tekst = `<span>${speler.name}</span> (${speler.positie})`;
+      const button = `<button class="watchlist-button" onclick="toggleWatchlist('${speler.name}'); event.stopPropagation();">Remove</button>`;
+
+      li.innerHTML = img + tekst + button;
+    } else {
+      // Terug naar placeholdermodus
+      li.classList.add("placeholder");
+      li.innerHTML = `
+        <span class="pick-number">${i + 1}</span>
+        <span class="awaiting-text">Waiting for talent...</span>
+      `;
+      li.onclick = null;
+      delete li.dataset.name;
+    }
+  }
+}
+
+
+(function createWatchlistPlaceholders() {
+  const container = document.getElementById("watchlistContainer");
+  for (let i = 0; i < 11; i++) {
+    const li = document.createElement("li");
+    li.classList.add("watchlist-item", "placeholder");
+    li.dataset.slot = i;
+    li.innerHTML = `
+      <span class="pick-number">${i + 1}</span>
+      <span class="awaiting-text">Waiting for talent...</span>
+    `;
+    container.appendChild(li);
+  }
+})();
+
+
+
+function buildDraftBoard(players) {
+  const row = document.getElementById("draftRow");
+  row.innerHTML = "";
+
+  for (let r = 1; r <= 12; r++) {
+    const isEven = r % 2 === 0;
+    const order = isEven ? [...players].reverse() : players;
+
+    const roundTile = document.createElement("div");
+    roundTile.className = "round-tile";
+    roundTile.innerText = `Rd\n${r}`;
+    row.appendChild(roundTile);
+
+    order.forEach(pl => {
+      const speler = window.namen.find(p => p.name === pl);  // Vind speler op basis van naam
+      const achternaam = speler ? speler.achtername : pl;  // Gebruik de achternaam
+
+      const tile = document.createElement("div");
+      tile.className = "pick-tile";
+      tile.dataset.pickId = `R${r}-${pl}`;
+      tile.innerHTML = `<span title="${achternaam}">${shortenName(achternaam)}</span><br><em>(nog geen pick)</em>`;
+      row.appendChild(tile);
+    });
+  }
+}
+
+
+function updateDraftTile(round, playerName, pickObj) {
+  const id = `R${round}-${playerName}`;
+  const tile = document.querySelector(`[data-pick-id="${id}"]`);
+  if (tile) {
+    // Verkrijg de achternaam uit het pickObject
+    const achternaam = pickObj.achtername;
+
+    tile.innerHTML = `
+      <div class="positie-label">${afkortingPositie(pickObj.positie)}</div>
+      <span title="${playerName}">${shortenName(playerName)}</span><br>  <!-- Toon de gebruikersnaam hier -->
+      <strong${achternaam}</strong>
+  <!-- Toon de achternaam hieronder -->
+    `;
+  }
+}
+
+
+
+
+
+function scrollToTile(round, player) {
+  const id = `R${round}-${player}`;
+  const tile = document.querySelector(`[data-pick-id="${id}"]`);
+  if (!tile) return;
+
+  const cont = document.getElementById("draftContainer");
+  const ct = cont.getBoundingClientRect();
+  const tt = tile.getBoundingClientRect();
+
+  // Bereken scroll offset zoals voorheen
+  let left = cont.scrollLeft + (tt.left + tt.width / 2) - (ct.left + ct.width / 2);
+
+  // Check of we op mobiel zitten
+  const isMobile = window.innerWidth <= 480;
+
+  if (isMobile) {
+    // Laat zowel de huidige tile als de volgende zichtbaar zijn
+    // Verschuif iets meer naar links dan normaal
+    left -= tile.offsetWidth / 1.5; // schuif extra naar links op mobiel
+  }
+
+  // Zorg dat we niet te ver scrollen
+  left = Math.max(0, Math.min(left, cont.scrollWidth - cont.clientWidth));
+
+  cont.scrollTo({ left, behavior: "smooth" });
+}
+
+
+
+
+function buildDraftBoard(players) {
+  const row = document.getElementById("draftRow");
+  row.innerHTML = "";
+
+  for (let r = 1; r <= 12; r++) {
+    const isEven = r % 2 === 0;
+    const order = isEven ? [...players].reverse() : players;
+
+    const roundTile = document.createElement("div");
+    roundTile.className = "round-tile";
+    roundTile.innerText = `Rd\n${r}`;
+    row.appendChild(roundTile);
+
+    order.forEach((pl, i) => {
+      const speler = window.namen.find(p => p.name === pl);
+      const positie = speler ? speler.positie.toLowerCase() : "";
+      const afkorting = {
+        "keeper": "KE",
+        "verdediger": "DE",
+        "middenvelder": "MF",
+        "aanvaller": "AT"
+      }[positie] || "";
+
+      const pickNum = `${r}.${i + 1}`;
+      const tile = document.createElement("div");
+      tile.className = "pick-tile";
+      tile.dataset.pickId = `R${r}-${pl}`;
+
+      tile.innerHTML = `
+  <div class="tile-content">
+    <span class="draft-username" title="${pl}">${shortenName(pl)}</span>
+    <span class="draft-picknumber">Pick <em>${pickNum}</em></span>
+    <div class="positie-label">${afkorting}</div>
+  </div>
+`;
+
+
+      row.appendChild(tile);
+    });
+  }
+
+  buildEmptyDraftOverviewGrid(players); // Standaard rooster
+  buildPositionalDraftOverview(players); // Nieuwe op positie gebaseerde weergave
+}
+
+
+
+
+
+function updateDraftTile(round, playerName, pickObj) {
+  const id = `R${round}-${playerName}`;
+  const tile = document.querySelector(`[data-pick-id="${id}"]`);
+  if (tile) {
+    const achternaam = pickObj.achtername;
+    const afkorting = afkortingPositie(pickObj.positie).toUpperCase();
+
+    // Kies CSS-klasse op basis van positie
+    const posClass = {
+      KE: "positie-ke",
+      DE: "positie-de",
+      MF: "positie-mf",
+      AT: "positie-at"
+    }[afkorting] || "";
+
+    tile.innerHTML = `
+  <div class="positie-label-draftboard ${posClass}">${afkorting}</div>
+  <span class="draft-username" title="${playerName}">${shortenName(playerName)}</span>
+  <span class="draft-achternaam">${achternaam}</span>
+`;
+
+  }
+}
+
+
+///////////////////////////////
+
+
+function buildEmptyDraftOverviewGrid(players) {
+  const table = document.getElementById("overzichtTable");
+  
+  table.innerHTML = "";
+
+  // Kolomkoppen (gebruikers)
+  const header = document.createElement("tr");
+  header.innerHTML = `<th>Ronde</th>` + players.map(p => `<th>${p}</th>`).join("");
+  table.appendChild(header);
+
+  for (let round = 1; round <= 12; round++) {
+    const row = document.createElement("tr");
+    row.innerHTML = `<td>Ronde ${round}</td>`;
+
+    const order = round % 2 === 0 ? [...players].reverse() : players;
+    const pickMap = {};
+    order.forEach((p, i) => { pickMap[p] = { id: `R${round}-${p}`, pickNum: `${round}.${i + 1}` }; });
+
+    players.forEach(p => {
+      const cell = document.createElement("td");
+      const data = pickMap[p] || { id: `R${round}-${p}`, pickNum: "–" };
+      cell.dataset.pickId = data.id;
+      cell.innerHTML = `<em>${data.pickNum}</em>`;  // Verwijderde "Pick"
+      row.appendChild(cell);
+    });
+
+    table.appendChild(row);
+  }
+}
+
+
+
+/////////////////////////////////////
+
+
+
+function updateDraftOverview(timeline) {
+  // Maak eerst alle positie-cellen leeg
+  const posCells = document.querySelectorAll("#positieTable td[data-player]");
+  posCells.forEach(cell => {
+    cell.innerHTML = "";
+  });
+
+  // Loop over de timeline en verwerk elke pick
+  timeline.forEach(({ round, username, pick }) => {
+    const speler = window.namen.find(p => p.name === pick);
+    const positie = speler ? speler.positie.toLowerCase() : "-";
+    const achternaam = speler ? speler.achtername : pick.split(" ").slice(-1)[0];
+
+
+    // Standaard overzicht
+    const cell = document.querySelector(`#overzichtTable td[data-pick-id="R${round}-${username}"]`);
+    if (cell) {
+      // Voeg de positie-afkorting toe aan de cel content, direct in de juiste cel
+      cell.innerHTML = `
+  <div class="draft-cell-content">
+<div class="positie-label-overzicht ${afkortingPositie(positie).toLowerCase()}">${afkortingPositie(positie)}</div>
+    <div class="draft-achternaamen">${achternaam}</div>
+  </div>
+`;
+
+
+    }
+
+    // Zoek alle cellen voor deze speler en positie
+    let allCells = document.querySelectorAll(`#positieTable td[data-player="${username}"][data-positie="${positie}"]`);
+    let placed = false;
+
+    // Probeer een lege cel te vinden
+    for (const cell of allCells) {
+      if (cell.innerHTML.trim() === "") {
+        cell.innerHTML = `
+  <div class="positie-cell-wrapper">
+    <div class="pick-ronde pick-ronde-${positie}">R${round}</div>
+    <div class="pick-naam">${pick}</div>
+  </div>
+`;
+
+        placed = true;
+        break;
+      }
+    }
+
+    // Als geen lege cel: voeg een nieuwe rij toe voor deze positie
+    if (!placed) {
+      const table = document.getElementById("positieTable");
+      const afkorting = {
+        "aanvaller": "AT",
+        "middenvelder": "MF",
+        "verdediger": "DE",
+        "keeper": "KE"
+      };
+
+      const row = document.createElement("tr");
+      row.innerHTML = `<td>${afkorting[positie]}</td>`; // Positie-afkorting
+
+      const players = [...new Set([...document.querySelectorAll("#positieTable td[data-player]")].map(td => td.dataset.player))];
+      players.forEach(player => {
+        const cell = document.createElement("td");
+        cell.dataset.player = player;
+        cell.dataset.positie = positie;
+        if (player === username) {
+  cell.innerHTML = `
+    <div class="positie-cell-wrapper">
+      <div class="pick-ronde pick-ronde-${positie}">R${round}</div>
+      <strong${achternaam}</strong>
+    </div>
+  `;
+  placed = true; // <-- VOEG DEZE REGEL TOE
+
+
+
+        }
+        row.appendChild(cell);
+      });
+
+      // Vind de juiste invoegplek: na de laatste rij van de juiste positie
+      const rows = Array.from(table.rows).slice(1); // sla de header over
+      let insertAfterRow = null;
+      for (let i = rows.length - 1; i >= 0; i--) {
+        if (rows[i].cells[0]?.textContent === afkorting[positie]) {
+          insertAfterRow = rows[i];
+          break;
+        }
+      }
+
+      if (insertAfterRow) {
+        insertAfterRow.after(row);
+      } else {
+        table.appendChild(row); // fallback
+      }
+    }
+
+  });
+}
+
+
+
+/////////////////////////////////////////////////
+function buildPositionalDraftOverview(players) {
+  const table = document.getElementById("positieTable");
+  table.innerHTML = "";
+
+  const posities = {
+    "aanvaller": 3,
+    "middenvelder": 3,
+    "verdediger": 4,
+    "keeper": 1
+  };
+
+  const afkorting = {
+    "aanvaller": "AT",
+    "middenvelder": "MF",
+    "verdediger": "DE",
+    "keeper": "KE"
+  };
+
+  // Kolomkop: gebruikers
+  const header = document.createElement("tr");
+  header.innerHTML = `<th>Positie</th>` + players.map(p => `<th>${p}</th>`).join("");
+  table.appendChild(header);
+
+  // Voor elke positie, zoveel rijen maken als nodig
+  Object.entries(posities).forEach(([positie, aantalRijen]) => {
+    for (let i = 0; i < aantalRijen; i++) {
+      const row = document.createElement("tr");
+      row.innerHTML = `<td class="afkorting-${afkorting[positie].toLowerCase()}">${afkorting[positie]}</td>`;
+
+      players.forEach((player, index) => {
+        const cell = document.createElement("td");
+        cell.dataset.player = player;
+        cell.dataset.positie = positie;
+
+        // Voorbeeld: in de eerste speler-cel per rij een pick-ronde badge tonen
+        if (index === 0) {
+          const badge = document.createElement("span");
+          badge.classList.add("pick-ronde", `pick-ronde-${afkorting[positie].toLowerCase()}`);
+          badge.textContent = "R1";  // voorbeeld pick ronde 1
+          cell.appendChild(badge);
+        }
+
+        row.appendChild(cell);
+      });
+
+      table.appendChild(row);
+    }
+  });
+}
+
+
+//////////////////////////////////////
+
+function maakSpelerDraggable(playerDiv) {
+  playerDiv.setAttribute("draggable", "true");
+
+  playerDiv.addEventListener("dragstart", e => {
+  playerDiv.classList.add("dragging");
+
+  const ghost = document.createElement("div");
+  ghost.style.width = playerDiv.offsetWidth + "px";
+  ghost.style.height = playerDiv.offsetHeight + "px";
+  ghost.style.opacity = "0";
+  document.body.appendChild(ghost);
+  e.dataTransfer.setDragImage(ghost, 0, 0);
+
+  ghostDiv = ghost;
+
+  // ➕ Sla offset op binnen het element
+  const rect = playerDiv.getBoundingClientRect();
+  playerDiv.dataset.offsetX = e.clientX - rect.left;
+  playerDiv.dataset.offsetY = e.clientY - rect.top;
+});
+
+
+  playerDiv.addEventListener("dragend", () => {
+    playerDiv.classList.remove("dragging");
+
+    if (ghostDiv && ghostDiv.parentNode) {
+      ghostDiv.parentNode.removeChild(ghostDiv);
+      ghostDiv = null;
+    }
+  });
+}
+
+
+
+
+footballField.addEventListener("drop", e => {
+  e.preventDefault();
+  const dragging = document.querySelector(".dragging");
+  if (dragging) {
+    const rect = footballField.getBoundingClientRect();
+
+    const offsetX = parseFloat(dragging.dataset.offsetX || 0);
+    const offsetY = parseFloat(dragging.dataset.offsetY || 0);
+
+    const x = e.clientX - rect.left - offsetX;
+    const y = e.clientY - rect.top - offsetY;
+
+    const maxX = footballField.clientWidth - dragging.offsetWidth;
+    const maxY = footballField.clientHeight - dragging.offsetHeight;
+
+    dragging.style.position = "absolute";
+    dragging.style.left = Math.min(Math.max(0, x), maxX) + "px";
+    dragging.style.top = Math.min(Math.max(0, y), maxY) + "px";
+
+    footballField.appendChild(dragging);
+  }
+
+  // Verwijder preview en ghost
+  if (dropPreviewDiv && dropPreviewDiv.parentNode) {
+    dropPreviewDiv.parentNode.removeChild(dropPreviewDiv);
+    dropPreviewDiv = null;
+  }
+
+  if (ghostDiv && ghostDiv.parentNode) {
+    ghostDiv.parentNode.removeChild(ghostDiv);
+    ghostDiv = null;
+  }
+});
+
+
+
+footballField.addEventListener("dragover", e => {
+  e.preventDefault();
+
+  const dragging = document.querySelector(".dragging");
+  if (!dragging) return;
+
+  const rect = footballField.getBoundingClientRect();
+  const offsetX = parseFloat(dragging.dataset.offsetX || 0);
+  const offsetY = parseFloat(dragging.dataset.offsetY || 0);
+  const x = e.clientX - rect.left - offsetX;
+  const y = e.clientY - rect.top - offsetY;
+
+  const maxX = footballField.clientWidth - dragging.offsetWidth;
+  const maxY = footballField.clientHeight - dragging.offsetHeight;
+
+  if (!dropPreviewDiv) {
+    dropPreviewDiv = document.createElement("div");
+    dropPreviewDiv.classList.add("drop-preview");
+    dropPreviewDiv.textContent = dragging.textContent;
+    footballField.appendChild(dropPreviewDiv);
+  }
+
+  dropPreviewDiv.style.left = Math.min(Math.max(0, x), maxX) + "px";
+  dropPreviewDiv.style.top = Math.min(Math.max(0, y), maxY) + "px";
+});
+
+
+
+////////////////////////////////
+
+function voegTouchSupportToe(playerDiv) {
+  let offsetX, offsetY;
+
+  playerDiv.addEventListener("touchstart", e => {
+    const touch = e.touches[0];
+    const rect = playerDiv.getBoundingClientRect();
+    offsetX = touch.clientX - rect.left;
+    offsetY = touch.clientY - rect.top;
+
+    playerDiv.classList.add("dragging");
+  });
+
+  playerDiv.addEventListener("touchmove", e => {
+    e.preventDefault();
+    const touch = e.touches[0];
+
+    const fieldRect = footballField.getBoundingClientRect();
+    const x = touch.clientX - fieldRect.left - offsetX;
+    const y = touch.clientY - fieldRect.top - offsetY;
+
+    const maxX = footballField.clientWidth - playerDiv.offsetWidth;
+    const maxY = footballField.clientHeight - playerDiv.offsetHeight;
+
+    playerDiv.style.position = "absolute";
+    playerDiv.style.left = Math.min(Math.max(0, x), maxX) + "px";
+    playerDiv.style.top = Math.min(Math.max(0, y), maxY) + "px";
+
+    footballField.appendChild(playerDiv);
+  });
+
+  playerDiv.addEventListener("touchend", e => {
+    playerDiv.classList.remove("dragging");
+  });
+}
+
+  </script>
+</body>
+</html>

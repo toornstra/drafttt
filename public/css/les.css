@@ -1,0 +1,346 @@
+
+.ranking-container {
+  position: relative;
+}
+
+
+
+/* Podium container */
+#podium-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  margin-top: 60px;
+  gap: 30px;
+  }
+
+
+
+.podium-box.first > span::before {
+  content: "🥇 ";
+}
+.podium-box.second > span::before {
+  content: "🥈 ";
+}
+.podium-box.third > span::before {
+  content: "🥉 ";
+}
+
+
+
+
+
+
+
+/* Hoofd podium */
+.podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+/* Individuele posities */
+.podium-box {
+  width: 120px;
+  position: relative;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  color: white;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease;
+}
+
+.podium-box:hover {
+  transform: scale(1.05);
+}
+
+/* Hoogtes voor 1-2-3 */
+.first { height: 1820px; background: linear-gradient(to top, #FFD700, #FFEB3B); } /* Goud */
+.second { height: 140px; background: linear-gradient(to top, #C0C0C0, #E0E0E0); } /* Zilver */
+.third { height: 120px; background: linear-gradient(to top, #CD7F32, #D2A679); } /* Brons */
+
+.podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 20px;
+  margin-top: 30px;
+}
+
+.podium-box {
+  width: 120px;
+  text-align: center;
+  background-color: #eee;
+  border-radius: 10px;
+  padding: 10px;
+  position: relative;
+}
+
+.podium-box.first {
+  order: 2; /* midden */
+  height: 90px;
+  background-color: gold;
+}
+
+.podium-box.second {
+  order: 1; /* links */
+  height: 60px;
+  background-color: silver;
+}
+
+.podium-box.third {
+  order: 3; /* rechts */
+  height: 40px;
+  background-color: #cd7f32; /* brons */
+}
+
+.slot.rank-1 {
+  position: relative;
+  top: -0px;
+}
+
+
+
+
+/* Positienummer op het podium */
+.podium-box > span {
+  position: absolute;
+  top: -20px;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 1.2em;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.podium-box.first > span {
+  background: linear-gradient(to right, #FFD700, #FFEB3B); /* goud */
+  color: #ffffff;
+}
+
+.podium-box.second > span {
+  background: linear-gradient(to right, #C0C0C0, #E0E0E0); /* zilver */
+  color: #ffffff;
+}
+
+.podium-box.third > span {
+  background: linear-gradient(to right, #CD7F32, #D2A679); /* brons */
+  color: #ffffff;
+}
+
+
+
+
+
+/* Namen container op het podium */
+.names-container {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  padding: 0 8px;
+  text-align: center;
+}
+
+
+
+/* Naam-stijl in podium */
+.podium-box .name-box {
+  background: rgba(255, 255, 255, 0.85);
+  color: #222;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-weight: bold;
+  font-size: 0.95em;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+/* Overige deelnemers */
+.others {
+  display: flex;
+  flex-direction: column; /* zet onder elkaar */
+  gap: 10px;
+  align-items: center;
+  margin-top: 40px;
+
+}
+
+
+
+
+/* Slot stijlen */
+.slot {
+  min-height: 40px;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+
+
+.slot .name-box {
+  cursor: pointer;
+}
+
+
+
+
+#lobby-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+    padding: 20px; /* ⇐ meer ruimte binnen de rand */
+
+
+}
+
+#lobby-names .name-box {
+  background: linear-gradient(90deg, #2563eb 60%, #60a5fa 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 700;
+  font-size: 1.2rem;
+  cursor: pointer;
+    transition: transform 0.3s ease;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+
+#lobby-names .name-box:hover {
+  background: #1e40af;
+  color: #ffffff;
+  transform: translateY(-2px) scale(1.05);
+}
+
+#lobby-names .name-box.selected {
+  background: linear-gradient(90deg, #1e40af 60%, #3b82f6 100%);
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+
+
+
+.others-table {
+  margin-top: 40px;
+  border-collapse: collapse;
+  width: 320px;
+  background-color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+
+
+.others-table td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+}
+
+.others-table tr:last-child td {
+  border-bottom: none;
+}
+
+.rank-cell {
+  font-weight: bold;
+  background-color: #2563eb;
+  color: white;
+  border-right: 1px solid #ddd;
+  width: 60px;
+  font-weight: 700;
+}
+
+.ranking-container {
+  border: 3px solid #2563eb; /* diep blauw */
+  border-radius: 16px;
+  padding: 20px;
+  margin: 20px auto;
+  max-width: 900px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+
+.ranking-title {
+  position: absolute;
+  top: -22px;
+  border: 3px solid #2563eb; /* diep blauw */
+    border-radius: 10px;
+  background-color: #2563eb;
+color: white;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 12px;
+  font-weight: bold;
+  font-size: 2em;
+}
+
+#ranking-wrapper {
+  padding: 20px;
+  justify-content: center;
+  align-items: flex-start;
+  border-radius: 8px;
+}
+
+
+#lobby-names {
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  position: relative;
+}
+
+#lobby-names::before {
+  background-color: #f9fafb;
+  padding: 0 8px;
+  
+}
+
+#calculate-winner {
+  background: linear-gradient(90deg, #2563eb 60%, #60a5fa 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-left: 6px;
+  transition: background 0.2s, transform 0.1s;
+}
+
+#calculate-winner:hover {
+  background: #1e40af;
+  color: #ffffff;
+  transform: translateY(-2px) scale(1.05);
+}
+
+.champion-banner {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #FFD700;
+  text-align: center;
+  padding: 20px;
+  animation: fadeIn 1s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
